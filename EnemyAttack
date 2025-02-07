@@ -1,0 +1,76 @@
+using UnityEditor.Experimental.GraphView;
+using UnityEngine;
+using System.Collections;
+
+
+public class EnemyAttack : MonoBehaviour
+{
+    public int damage = 10;
+    public float attackCooldown = 1.5f; // Cooldown in seconds
+    private float lastAttackTime = 0f;
+    private Animator anim;
+    private bool isAttacking = false;  // Variabile per bloccare il movimento durante l'attacco
+    private Collider2D attackCollider; // Reference to trigger collider
+
+    void Start()
+    {
+        anim = GetComponent<Animator>();
+        attackCollider = GetComponent<Collider2D>(); // Get the trigger collider
+    }
+
+    void OnTriggerStay2D(Collider2D other)
+    {
+        Debug.Log("Trigger entered by: " + other.name);
+        if (other.CompareTag("Player") && Time.time >= lastAttackTime + attackCooldown)
+        {
+            Debug.Log("Player detected inside trigger.");
+            PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
+
+            if (playerHealth != null)
+            {
+                Debug.Log("Attacking player!");
+                playerHealth.TakeDamage(damage);
+                lastAttackTime = Time.time; // Update last attack time
+
+                if (anim != null)
+                {
+                    anim.SetTrigger("Attack");
+                    Debug.Log("Trigger Attack Attivato!");
+                    StartCoroutine(EndAttack()); // Avvia coroutine per riprendere il movimento
+                }
+            }
+            else
+            {
+                Debug.LogError("Animator non trovato sul nemico!");
+            }
+
+            GetComponent<Collider2D>().enabled = false;
+            StartCoroutine(EnableColliderAfterCooldown());
+
+        }
+    }
+    IEnumerator EnableColliderAfterCooldown()
+    {
+        yield return new WaitForSeconds(attackCooldown);
+        GetComponent<Collider2D>().enabled = true;
+    }
+
+    // Coroutine per riprendere il movimento dopo l'attacco
+    IEnumerator EndAttack()
+    {
+        yield return new WaitForSeconds(2f);  // Aspetta 2 secondi
+        isAttacking = false;  // Riprende il movimento
+    }
+
+
+
+
+    // Aggiungi questa funzione al controllo del movimento nel tuo codice EnemyAI
+    public bool IsAttacking()
+    {
+        Debug.Log($"Is Attacking: {isAttacking}");
+        return isAttacking;
+    }
+
+
+}
