@@ -1,0 +1,48 @@
+using UnityEngine;
+
+public class Enemy : MonoBehaviour
+{
+    // Proprietà del nemico
+    public int maxHealth = 100; // Vita massima del nemico
+    private int currentHealth;  // Vita attuale del nemico
+    void Start()
+    {
+        
+        // Imposta la vita iniziale del nemico
+        currentHealth = maxHealth;
+    }
+
+    // Funzione per infliggere danno al nemico
+    public void TakeDamage(int damageAmount)
+    {
+        // Riduci la vita attuale del nemico
+        currentHealth -= damageAmount;
+
+        // Assicurati che la vita non scenda sotto zero
+        currentHealth = Mathf.Max(currentHealth, 0);
+
+        // Stampa la vita del nemico nella console (opzionale per debugging)
+        Debug.Log($"Il nemico ha {currentHealth} punti vita rimanenti.");
+
+        // Controlla se il nemico è morto
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    // Funzione chiamata quando il nemico muore
+    private void Die()
+    {
+        Debug.Log("Il nemico è morto!");
+
+        // Esegui altre azioni, come animazioni di morte o rimozione dell'oggetto
+        Destroy(gameObject); // Rimuove il nemico dalla scena
+    }
+
+    // Funzione chiamata quando il nemico viene colpito dal colpo della spada
+    public void OnWeaponHit(int damage)
+    {
+        TakeDamage(damage); // Infligge danno usando la funzione di danno
+    }
+}
