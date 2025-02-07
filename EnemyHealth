@@ -1,0 +1,48 @@
+using UnityEngine;
+
+public class EnemyHealth : MonoBehaviour
+{
+    public float Health;
+    public float CurrentHealth;
+    public Animator anim;
+    private EnemyAI enemyAI; // Riferimento allo script EnemyAI
+    public Rigidbody2D rb;
+    public GameObject Enemy;
+    void Start()
+    {
+        anim = GetComponent<Animator>();
+        CurrentHealth = Health;
+        enemyAI = GetComponent<EnemyAI>(); // Otteniamo il componente EnemyAI
+
+    }
+
+    void Update()
+    {
+        if (Health < CurrentHealth)
+        {
+            CurrentHealth = Health;
+            anim.SetTrigger("Attacked");
+        }
+
+
+        if (Health <= 0)
+        {
+            anim.SetBool("isDead", true);
+            Debug.Log("Il Nemico è Morto");
+            Destroy(Enemy);
+            // Disattiviamo l'AI
+            if (enemyAI != null)
+            {
+                enemyAI.DisableAI(); // Chiama il metodo per disattivare l'IA
+            }
+
+            // Disabilitiamo il collider
+            GetComponent<Collider2D>().enabled = false;
+
+            // Disabilitiamo lo script di salute
+            this.enabled = false;
+            
+        }
+    }
+
+}
