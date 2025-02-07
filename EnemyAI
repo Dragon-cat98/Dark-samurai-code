@@ -1,0 +1,212 @@
+using UnityEngine;
+
+public class EnemyAI : MonoBehaviour
+{
+    public Transform[] patrolPoints; // Punti di pattugliamento
+    public float speed = 2f; // Velocità del nemico
+    public float chaseSpeed = 4f; // Velocità durante l'inseguimento
+    public float detectionRange = 5f; // Raggio di rilevamento orizzontale del giocatore
+    public float verticalTolerance = 2f; // Tolleranza verticale per rilevare il giocatore
+    public float minimumDistance = 1f; // Distanza minima dal giocatore
+    public float attackRange = 1.5f; // Distanza per attaccare
+    public float attackCooldown = 1f; // Tempo tra un attacco e l'altro
+    public int damage = 10; // Danno inflitto al player
+
+    private int currentPatrolIndex = 0;
+    public Transform player; // Riferimento al giocatore
+    private bool isChasing = false;
+    private float chaseTimer = 0f; // Timer per il ritardo nell'inseguimento
+    public float chaseDelay = 1f; // Ritardo prima di iniziare l'inseguimento
+    private float lastAttackTime = 0f; // Timer per il cooldown dell'attacco
+    public EnemyAttack enemyAttack;  // Riferimento allo script EnemyAttack
+    private Animator anim;
+    public GameObject PointA;
+    public GameObject PointB;
+    private Rigidbody2D rb;
+    private Transform currentPoint;
+    public EnemyDetectionZone attackZone;
+
+    
+
+    public bool _hasTarget = false;
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>();
+        currentPoint = PointB.transform;
+        anim.SetBool("isRunning", true);
+
+
+       
+
+        enemyAttack = GetComponent<EnemyAttack>();
+
+        if (patrolPoints.Length > 0)
+            transform.position = patrolPoints[0].position;
+
+        // Cerca un GameObject specifico per il giocatore
+        GameObject playerObject = GameObject.Find("Player"); // Assicurati che il nome corrisponda al GameObject nella scena
+        if (playerObject != null)
+        {
+            player = playerObject.transform;
+        }
+    }
+
+      public bool HasTarget
+      {
+        get { return _hasTarget; }
+        private set
+        {
+            _hasTarget = value;
+            anim.SetBool(AnimationStrings.hasTarget, value);
+        }
+      }
+
+    void Update()
+    {
+        HasTarget = attackZone.detectedColliders.Count > 0; 
+ 
+
+
+
+
+        // Get current animation state
+        AnimatorStateInfo stateInfo = anim.GetCurrentAnimatorStateInfo(0);
+
+        // If attack animation is playing, stop movement
+        if (stateInfo.IsName("Attack"))
+        {
+            Debug.Log("Enemy is attacking, stopping movement.");
+            return; // Stop all movement while attacking
+        }
+
+        if (isChasing)
+        {
+            ChasePlayer();
+            TryAttackPlayer();
+        }
+        else
+        {
+            Patrol();
+        }
+
+        DetectPlayer();
+
+
+
+
+        Vector2 point = currentPoint.position - transform.position;
+        if (currentPoint == PointB.transform)
+        {
+            rb.linearVelocity = new Vector2(speed, 0);
+        }
+        else
+        {
+            rb.linearVelocity = new Vector2(-speed, 0);
+        }
+        if (Vector2.Distance(transform.position, currentPoint.position) < 0.5f && currentPoint == PointB.transform)
+        {
+            flip();
+            currentPoint = PointA.transform;
+        }
+        if (Vector2.Distance(transform.position, currentPoint.position) < 0.5f && currentPoint == PointA.transform)
+        {
+            flip();
+            currentPoint = PointB.transform;
+        }
+        
+    }
+
+
+
+    void Patrol()
+    {
+        if (patrolPoints.Length == 0) return;
+
+        Transform targetPoint = patrolPoints[currentPatrolIndex];
+        transform.position = Vector2.MoveTowards(transform.position, targetPoint.position, speed * Time.deltaTime);
+
+        if (Vector2.Distance(transform.position, targetPoint.position) < 0.1f)
+        {
+            currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
+        }
+    }
+
+    void ChasePlayer()
+    {
+        if (player == null) return;
+
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+
+        if (distanceToPlayer > minimumDistance)
+        {
+            transform.position = Vector2.MoveTowards(transform.position, player.position, chaseSpeed * Time.deltaTime);
+        }
+    }
+
+    void DetectPlayer()
+    {
+        if (player == null) return;
+
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+        float verticalDistance = Mathf.Abs(transform.position.y - player.position.y);
+
+        if (distanceToPlayer <= detectionRange && verticalDistance <= verticalTolerance)
+        {
+            chaseTimer += Time.deltaTime;
+            if (chaseTimer >= chaseDelay)
+            {
+                isChasing = true;
+            }
+        }
+        else
+        {
+            chaseTimer = 0f;
+            isChasing = false;
+        }
+    }
+
+    void TryAttackPlayer()
+    {
+        if (player == null) return;
+
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+
+        if (distanceToPlayer <= attackRange && Time.time >= lastAttackTime + attackCooldown && !enemyAttack.IsAttacking())
+        {
+            lastAttackTime = Time.time;
+            AttackPlayer();
+        }
+    }
+
+
+    void AttackPlayer()
+    {
+        Debug.Log("Il nemico attacca il giocatore!");
+
+        // Verifica che il player abbia uno script che gestisce la sua salute
+        PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
+        if (playerHealth != null)
+        {
+            playerHealth.TakeDamage(damage);
+        }
+
+    }
+    private void OnDrawGizmos()
+    {
+        Gizmos.DrawWireSphere(PointA.transform.position, 0.5f);
+        Gizmos.DrawWireSphere(PointB.transform.position, 0.5f);
+        Gizmos.DrawLine(PointA.transform.position, PointB.transform.position);
+    }
+    private void flip()
+    {
+        Vector3 localScale = transform.localScale;
+        localScale.x *= -1;
+        transform.localScale = localScale;
+    }
+
+    public void DisableAI()
+    {
+        this.enabled = false; // Disattiva lo script
+    }
+}
