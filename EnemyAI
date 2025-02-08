@@ -210,4 +210,10 @@ public class EnemyAI : MonoBehaviour
     {
         this.enabled = false; // Disattiva lo script
     }
+
+ bool IsAttacking()
+ {
+     return anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack");
+ }
+
 }
