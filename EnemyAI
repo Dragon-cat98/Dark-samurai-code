@@ -61,6 +61,7 @@ public class EnemyAI : MonoBehaviour
             anim.SetBool(AnimationStrings.hasTarget, value);
         }
       }
+   
 
     void Update()
     {
